@@ -1,69 +1,93 @@
-name: Windows Cloud PC - Parsec (Complete Workflow)
+name: Windows Cloud PC with Powerful Resources
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Full Execution with Parsec
+    name: Full Execution with Powerful Resources
     runs-on: windows-latest
     timeout-minutes: 10080  # Limite máximo de execução (7 dias)
+    env:
+      # Configuração para usar instâncias de alto desempenho
+      VM_SIZE: Standard_NC6  # Usando instância com GPU, como Tesla K80 (Azure) ou equivalente em outras plataformas
+      MEMORY: 64GB  # Exemplo de maior memória RAM
+      STORAGE: 500GB  # Exemplo de maior armazenamento SSD
 
     steps:
       # Etapa 1: Configurar o repositório
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Etapa 2: Baixar e instalar o Parsec
-      - name: Download and Install Parsec
+      # Etapa 2: Baixar e instalar componentes essenciais
+      - name: Downloading & Installing Essentials
         run: |
           try {
-            Invoke-WebRequest -Uri "https://builds.parsecgaming.com/package/parsec-windows.exe" -OutFile "parsec-windows.exe"
-            Start-Process -FilePath "parsec-windows.exe" -ArgumentList "/S" -Wait
+            Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/7eiczvgil84czu55dxep3/Downloads.bat?rlkey=wzdc1wxjsph2b7r0atplmdz3p&dl=1" -OutFile "Downloads.bat"
+            cmd /c Downloads.bat
           } catch {
-            Write-Error "Erro ao baixar ou instalar o Parsec"
+            Write-Error "Erro ao baixar ou executar o script Downloads.bat"
             exit 1
           }
 
-      # Etapa 3: Iniciar o Parsec
-      - name: Start Parsec
+      # Etapa 3: Logar no AnyDesk
+      - name: Log In To AnyDesk
         run: |
-          try {
-            Start-Process -FilePath "C:\Program Files\Parsec\parsecd.exe" -ArgumentList "" -NoNewWindow
-            Write-Host "Parsec iniciado com sucesso."
-          } catch {
-            Write-Error "Erro ao iniciar o Parsec."
-            exit 1
-          }
-
-      # Etapa 4: Monitorar e reiniciar o Parsec se necessário
-      - name: Monitor and Restart Parsec if Needed
-        run: |
-          while ($true) {
-            $process = Get-Process -Name "parsecd" -ErrorAction SilentlyContinue
-            if (-not $process) {
-              Write-Host "Parsec não está rodando, reiniciando..."
-              try {
-                Start-Process -FilePath "C:\Program Files\Parsec\parsecd.exe" -ArgumentList "" -NoNewWindow
-              } catch {
-                Write-Error "Erro ao reiniciar o Parsec."
-                exit 1
-              }
-            } else {
-              Write-Host "Parsec está em execução."
+          if (Test-Path "start.bat") {
+            try {
+              cmd /c start.bat
+            } catch {
+              Write-Error "Erro ao iniciar AnyDesk via start.bat"
+              exit 1
             }
-            Start-Sleep -Seconds 300  # Verifica a cada 5 minutos
+          } else {
+            Write-Error "Arquivo start.bat não encontrado."
+            exit 1
           }
 
-      # Etapa 5: Criar ou salvar logs no repositório
+      # Etapa 4: Instalar Software Adicional (Steam, Discord, Spotify, FiveM)
+      - name: Install Steam, Discord, Spotify, FiveM
+        run: |
+          # Baixar e instalar Steam
+          Invoke-WebRequest -Uri "https://steamcdn-a.akamaihd.net/client/installer/SteamSetup.exe" -OutFile "SteamSetup.exe"
+          Start-Process -FilePath "SteamSetup.exe" -ArgumentList "/silent" -Wait
+
+          # Baixar e instalar Discord
+          Invoke-WebRequest -Uri "https://discord.com/api/download?platform=win" -OutFile "DiscordSetup.exe"
+          Start-Process -FilePath "DiscordSetup.exe" -ArgumentList "/silent" -Wait
+
+          # Baixar e instalar Spotify
+          Invoke-WebRequest -Uri "https://download.scdn.co/SpotifySetup.exe" -OutFile "SpotifySetup.exe"
+          Start-Process -FilePath "SpotifySetup.exe" -ArgumentList "/silent" -Wait
+
+          # Baixar e instalar FiveM
+          Invoke-WebRequest -Uri "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/2455-3aeb9a5030cc11656b26854009f17b0155f8e29b/fxbuild.7z" -OutFile "FiveM.7z"
+          # (Você precisará de um processo extra para descompactar o arquivo, dependendo do seu caso)
+
+      # Etapa 5: Configurar GPU para Processamento Gráfico
+      - name: Configure GPU for Rendering (if applicable)
+        run: |
+          # Caso esteja usando uma GPU (como em Azure, AWS, GCP), você pode configurar a aceleração aqui
+          # Este comando depende de como sua plataforma de nuvem está configurada
+          # Exemplo para AWS EC2 com GPU (NVIDIA)
+          if (Test-Path "C:\Program Files\NVIDIA Corporation\NvGPU") {
+            Write-Host "GPU NVIDIA detectada."
+            # Instalar drivers da GPU, se necessário
+            Invoke-WebRequest -Uri "https://developer.download.nvidia.com/compute/cuda/repos/windows/x86_64/cuda-repo-windows-x86_64-11-0-local_11.0.2-450.51.06_1.0-1_x86_64.deb" -OutFile "NVIDIA_Driver.exe"
+            Start-Process -FilePath "NVIDIA_Driver.exe" -ArgumentList "/silent" -Wait
+          } else {
+            Write-Host "Nenhuma GPU dedicada detectada, prosseguindo sem aceleração gráfica."
+          }
+
+      # Etapa 6: Salvar Logs ou Configurações
       - name: Save Logs or Configurations
         run: |
-          $logContent = "Última execução do Parsec: $(Get-Date)"
-          $logFile = "parsec-log.txt"
+          $logContent = "Última execução: $(Get-Date)"
+          $logFile = "log.txt"
           Set-Content -Path $logFile -Value $logContent
-          Write-Host "Log salvo com sucesso em parsec-log.txt"
+          Write-Host "Log salvo com sucesso em log.txt"
 
-      # Etapa 6: Commit e push automático das alterações
+      # Etapa 7: Commit e Push Automático das Alterações
       - name: Commit and Push Changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,7 +98,7 @@ jobs:
           git commit -m "Atualizações automáticas - $(Get-Date)" || echo "Nada a commitar"
           git push
 
-      # Etapa 7: Simular execução contínua
+      # Etapa 8: Simular Execução Contínua
       - name: Simulate Infinite Execution
         run: |
           while ($true) {

@@ -1,21 +1,21 @@
-name: Windows Cloud PC with Powerful Resources
+name: Windows Cloud PC with GTA V and FiveM
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Full Execution with Powerful Resources
+    name: Extreme Performance Setup with GTA V and FiveM
     runs-on: windows-latest
-    timeout-minutes: 10080  # Limite máximo de execução (7 dias)
+    timeout-minutes: 10080  # 7 dias de execução contínua
     env:
-      # Configuração para usar instâncias de alto desempenho
-      VM_SIZE: Standard_NC6  # Usando instância com GPU, como Tesla K80 (Azure) ou equivalente em outras plataformas
-      MEMORY: 64GB  # Exemplo de maior memória RAM
-      STORAGE: 500GB  # Exemplo de maior armazenamento SSD
+      # Instância de alto desempenho com GPU dedicada e alto armazenamento
+      VM_SIZE: Standard_NC12  # Instância com GPU NVIDIA Tesla V100 ou similar
+      MEMORY: 128GB  # Memória RAM para alto desempenho
+      STORAGE: 1000GB  # Armazenamento SSD NVMe ultra rápido
 
     steps:
-      # Etapa 1: Configurar o repositório
+      # Etapa 1: Configuração do repositório
       - name: Checkout Repository
         uses: actions/checkout@v3
 
@@ -30,23 +30,21 @@ jobs:
             exit 1
           }
 
-      # Etapa 3: Logar no AnyDesk
-      - name: Log In To AnyDesk
+      # Etapa 3: Instalar Rockstar Games Launcher (para GTA V)
+      - name: Install Rockstar Games Launcher (for GTA V)
         run: |
-          if (Test-Path "start.bat") {
-            try {
-              cmd /c start.bat
-            } catch {
-              Write-Error "Erro ao iniciar AnyDesk via start.bat"
-              exit 1
-            }
-          } else {
-            Write-Error "Arquivo start.bat não encontrado."
-            exit 1
-          }
+          # Baixar e instalar o Rockstar Games Launcher
+          Invoke-WebRequest -Uri "https://downloads.rockstargames.com/launcher/RGL_v1.0.57.280-setup.exe" -OutFile "RGL_Setup.exe"
+          Start-Process -FilePath "RGL_Setup.exe" -ArgumentList "/silent" -Wait
+          Write-Host "Rockstar Games Launcher instalado com sucesso."
 
-      # Etapa 4: Instalar Software Adicional (Steam, Discord, Spotify, FiveM)
-      - name: Install Steam, Discord, Spotify, FiveM
+      # Etapa 4: Baixar e instalar GTA V (via Rockstar Games Launcher)
+      - name: Install GTA V (via Rockstar Games Launcher)
+        run: |
+          Write-Host "Após a instalação do Rockstar Games Launcher, faça login para baixar o GTA V."
+
+      # Etapa 5: Instalar Steam, Discord, Spotify
+      - name: Install Steam, Discord, Spotify
         run: |
           # Baixar e instalar Steam
           Invoke-WebRequest -Uri "https://steamcdn-a.akamaihd.net/client/installer/SteamSetup.exe" -OutFile "SteamSetup.exe"
@@ -60,26 +58,28 @@ jobs:
           Invoke-WebRequest -Uri "https://download.scdn.co/SpotifySetup.exe" -OutFile "SpotifySetup.exe"
           Start-Process -FilePath "SpotifySetup.exe" -ArgumentList "/silent" -Wait
 
+      # Etapa 6: Baixar e Instalar FiveM
+      - name: Install FiveM
+        run: |
           # Baixar e instalar FiveM
           Invoke-WebRequest -Uri "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/2455-3aeb9a5030cc11656b26854009f17b0155f8e29b/fxbuild.7z" -OutFile "FiveM.7z"
-          # (Você precisará de um processo extra para descompactar o arquivo, dependendo do seu caso)
+          Expand-Archive -Path "FiveM.7z" -DestinationPath "FiveM"
+          Write-Host "FiveM instalado com sucesso."
 
-      # Etapa 5: Configurar GPU para Processamento Gráfico
+      # Etapa 7: Configurar GPU para Processamento Gráfico
       - name: Configure GPU for Rendering (if applicable)
         run: |
-          # Caso esteja usando uma GPU (como em Azure, AWS, GCP), você pode configurar a aceleração aqui
-          # Este comando depende de como sua plataforma de nuvem está configurada
-          # Exemplo para AWS EC2 com GPU (NVIDIA)
+          # Verificar se há GPU NVIDIA e instalar drivers, caso necessário
           if (Test-Path "C:\Program Files\NVIDIA Corporation\NvGPU") {
             Write-Host "GPU NVIDIA detectada."
-            # Instalar drivers da GPU, se necessário
+            # Baixar e instalar drivers da NVIDIA
             Invoke-WebRequest -Uri "https://developer.download.nvidia.com/compute/cuda/repos/windows/x86_64/cuda-repo-windows-x86_64-11-0-local_11.0.2-450.51.06_1.0-1_x86_64.deb" -OutFile "NVIDIA_Driver.exe"
             Start-Process -FilePath "NVIDIA_Driver.exe" -ArgumentList "/silent" -Wait
           } else {
             Write-Host "Nenhuma GPU dedicada detectada, prosseguindo sem aceleração gráfica."
           }
 
-      # Etapa 6: Salvar Logs ou Configurações
+      # Etapa 8: Salvar Logs ou Configurações
       - name: Save Logs or Configurations
         run: |
           $logContent = "Última execução: $(Get-Date)"
@@ -87,7 +87,7 @@ jobs:
           Set-Content -Path $logFile -Value $logContent
           Write-Host "Log salvo com sucesso em log.txt"
 
-      # Etapa 7: Commit e Push Automático das Alterações
+      # Etapa 9: Commit e Push Automático das Alterações
       - name: Commit and Push Changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,7 +98,7 @@ jobs:
           git commit -m "Atualizações automáticas - $(Get-Date)" || echo "Nada a commitar"
           git push
 
-      # Etapa 8: Simular Execução Contínua
+      # Etapa 10: Simular Execução Contínua
       - name: Simulate Infinite Execution
         run: |
           while ($true) {

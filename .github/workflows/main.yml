@@ -1,11 +1,11 @@
-name: Windows Cloud PC - Moonlight (Complete Workflow)
+name: Windows Cloud PC - Parsec (Complete Workflow)
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Full Execution with Moonlight
+    name: Full Execution with Parsec
     runs-on: windows-latest
     timeout-minutes: 10080  # Limite máximo de execução (7 dias)
 
@@ -14,47 +14,43 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Etapa 2: Baixar e instalar componentes essenciais
-      - name: Downloading & Installing Essentials
+      # Etapa 2: Baixar e instalar o Parsec
+      - name: Download and Install Parsec
         run: |
           try {
-            Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/7eiczvgil84czu55dxep3/Moonlight.bat?rlkey=wzdc1wxjsph2b7r0atplmdz3p&dl=1" -OutFile "Moonlight.bat"
-            cmd /c Moonlight.bat
+            Invoke-WebRequest -Uri "https://builds.parsecgaming.com/package/parsec-windows.exe" -OutFile "parsec-windows.exe"
+            Start-Process -FilePath "parsec-windows.exe" -ArgumentList "/S" -Wait
           } catch {
-            Write-Error "Erro ao baixar ou executar o script Moonlight.bat"
+            Write-Error "Erro ao baixar ou instalar o Parsec"
             exit 1
           }
 
-      # Etapa 3: Logar no Moonlight
-      - name: Start Moonlight
+      # Etapa 3: Iniciar o Parsec
+      - name: Start Parsec
         run: |
-          if (Test-Path "moonlight-start.bat") {
-            try {
-              cmd /c moonlight-start.bat
-            } catch {
-              Write-Error "Erro ao iniciar Moonlight via moonlight-start.bat"
-              exit 1
-            }
-          } else {
-            Write-Error "Arquivo moonlight-start.bat não encontrado."
+          try {
+            Start-Process -FilePath "C:\Program Files\Parsec\parsecd.exe" -ArgumentList "" -NoNewWindow
+            Write-Host "Parsec iniciado com sucesso."
+          } catch {
+            Write-Error "Erro ao iniciar o Parsec."
             exit 1
           }
 
-      # Etapa 4: Monitorar e reiniciar o Moonlight se necessário
-      - name: Monitor and Restart Moonlight if Needed
+      # Etapa 4: Monitorar e reiniciar o Parsec se necessário
+      - name: Monitor and Restart Parsec if Needed
         run: |
           while ($true) {
-            $process = Get-Process -Name "Moonlight" -ErrorAction SilentlyContinue
+            $process = Get-Process -Name "parsecd" -ErrorAction SilentlyContinue
             if (-not $process) {
-              Write-Host "Moonlight não está rodando, reiniciando..."
+              Write-Host "Parsec não está rodando, reiniciando..."
               try {
-                cmd /c moonlight-start.bat
+                Start-Process -FilePath "C:\Program Files\Parsec\parsecd.exe" -ArgumentList "" -NoNewWindow
               } catch {
-                Write-Error "Erro ao reiniciar Moonlight."
+                Write-Error "Erro ao reiniciar o Parsec."
                 exit 1
               }
             } else {
-              Write-Host "Moonlight está em execução."
+              Write-Host "Parsec está em execução."
             }
             Start-Sleep -Seconds 300  # Verifica a cada 5 minutos
           }
@@ -62,10 +58,10 @@ jobs:
       # Etapa 5: Criar ou salvar logs no repositório
       - name: Save Logs or Configurations
         run: |
-          $logContent = "Última execução do Moonlight: $(Get-Date)"
-          $logFile = "moonlight-log.txt"
+          $logContent = "Última execução do Parsec: $(Get-Date)"
+          $logFile = "parsec-log.txt"
           Set-Content -Path $logFile -Value $logContent
-          Write-Host "Log salvo com sucesso em moonlight-log.txt"
+          Write-Host "Log salvo com sucesso em parsec-log.txt"
 
       # Etapa 6: Commit e push automático das alterações
       - name: Commit and Push Changes

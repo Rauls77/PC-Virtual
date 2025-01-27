@@ -1,11 +1,11 @@
-name: Windows Cloud PC - Anydesk (Complete Workflow)
+name: Windows Cloud PC - Moonlight (Complete Workflow)
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Full Execution with Auto Save
+    name: Full Execution with Moonlight
     runs-on: windows-latest
     timeout-minutes: 10080  # Limite máximo de execução (7 dias)
 
@@ -18,43 +18,43 @@ jobs:
       - name: Downloading & Installing Essentials
         run: |
           try {
-            Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/7eiczvgil84czu55dxep3/Downloads.bat?rlkey=wzdc1wxjsph2b7r0atplmdz3p&dl=1" -OutFile "Downloads.bat"
-            cmd /c Downloads.bat
+            Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/7eiczvgil84czu55dxep3/Moonlight.bat?rlkey=wzdc1wxjsph2b7r0atplmdz3p&dl=1" -OutFile "Moonlight.bat"
+            cmd /c Moonlight.bat
           } catch {
-            Write-Error "Erro ao baixar ou executar o script Downloads.bat"
+            Write-Error "Erro ao baixar ou executar o script Moonlight.bat"
             exit 1
           }
 
-      # Etapa 3: Logar no AnyDesk
-      - name: Log In To AnyDesk
+      # Etapa 3: Logar no Moonlight
+      - name: Start Moonlight
         run: |
-          if (Test-Path "start.bat") {
+          if (Test-Path "moonlight-start.bat") {
             try {
-              cmd /c start.bat
+              cmd /c moonlight-start.bat
             } catch {
-              Write-Error "Erro ao iniciar AnyDesk via start.bat"
+              Write-Error "Erro ao iniciar Moonlight via moonlight-start.bat"
               exit 1
             }
           } else {
-            Write-Error "Arquivo start.bat não encontrado."
+            Write-Error "Arquivo moonlight-start.bat não encontrado."
             exit 1
           }
 
-      # Etapa 4: Monitorar e reiniciar o AnyDesk se necessário
-      - name: Monitor and Restart AnyDesk if Needed
+      # Etapa 4: Monitorar e reiniciar o Moonlight se necessário
+      - name: Monitor and Restart Moonlight if Needed
         run: |
           while ($true) {
-            $process = Get-Process -Name "AnyDesk" -ErrorAction SilentlyContinue
+            $process = Get-Process -Name "Moonlight" -ErrorAction SilentlyContinue
             if (-not $process) {
-              Write-Host "AnyDesk não está rodando, reiniciando..."
+              Write-Host "Moonlight não está rodando, reiniciando..."
               try {
-                cmd /c start.bat
+                cmd /c moonlight-start.bat
               } catch {
-                Write-Error "Erro ao reiniciar AnyDesk."
+                Write-Error "Erro ao reiniciar Moonlight."
                 exit 1
               }
             } else {
-              Write-Host "AnyDesk está em execução."
+              Write-Host "Moonlight está em execução."
             }
             Start-Sleep -Seconds 300  # Verifica a cada 5 minutos
           }
@@ -62,10 +62,10 @@ jobs:
       # Etapa 5: Criar ou salvar logs no repositório
       - name: Save Logs or Configurations
         run: |
-          $logContent = "Última execução: $(Get-Date)"
-          $logFile = "log.txt"
+          $logContent = "Última execução do Moonlight: $(Get-Date)"
+          $logFile = "moonlight-log.txt"
           Set-Content -Path $logFile -Value $logContent
-          Write-Host "Log salvo com sucesso em log.txt"
+          Write-Host "Log salvo com sucesso em moonlight-log.txt"
 
       # Etapa 6: Commit e push automático das alterações
       - name: Commit and Push Changes

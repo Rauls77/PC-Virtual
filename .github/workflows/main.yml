@@ -1,34 +1,73 @@
-name: Windows Cloud PC - Anydesk (With Save)
+name: Windows Cloud PC - Anydesk (Complete Workflow)
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Infinite Execution with Save
+    name: Full Execution with Auto Save
     runs-on: windows-latest
-    timeout-minutes: 10080
+    timeout-minutes: 10080  # Limite máximo de execução (7 dias)
 
     steps:
-      # Configurar o repositório
+      # Etapa 1: Configurar o repositório
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Baixar e instalar componentes essenciais
+      # Etapa 2: Baixar e instalar componentes essenciais
       - name: Downloading & Installing Essentials
         run: |
-          Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/7eiczvgil84czu55dxep3/Downloads.bat?rlkey=wzdc1wxjsph2b7r0atplmdz3p&dl=1" -OutFile "Downloads.bat"
-          cmd /c Downloads.bat
+          try {
+            Invoke-WebRequest -Uri "https://www.dropbox.com/scl/fi/7eiczvgil84czu55dxep3/Downloads.bat?rlkey=wzdc1wxjsph2b7r0atplmdz3p&dl=1" -OutFile "Downloads.bat"
+            cmd /c Downloads.bat
+          } catch {
+            Write-Error "Erro ao baixar ou executar o script Downloads.bat"
+            exit 1
+          }
 
-      # Salvar estado do sistema ou arquivos
-      - name: Save Files or Configurations
+      # Etapa 3: Logar no AnyDesk
+      - name: Log In To AnyDesk
         run: |
-          # Exemplo: Criar/atualizar um arquivo de log
+          if (Test-Path "start.bat") {
+            try {
+              cmd /c start.bat
+            } catch {
+              Write-Error "Erro ao iniciar AnyDesk via start.bat"
+              exit 1
+            }
+          } else {
+            Write-Error "Arquivo start.bat não encontrado."
+            exit 1
+          }
+
+      # Etapa 4: Monitorar e reiniciar o AnyDesk se necessário
+      - name: Monitor and Restart AnyDesk if Needed
+        run: |
+          while ($true) {
+            $process = Get-Process -Name "AnyDesk" -ErrorAction SilentlyContinue
+            if (-not $process) {
+              Write-Host "AnyDesk não está rodando, reiniciando..."
+              try {
+                cmd /c start.bat
+              } catch {
+                Write-Error "Erro ao reiniciar AnyDesk."
+                exit 1
+              }
+            } else {
+              Write-Host "AnyDesk está em execução."
+            }
+            Start-Sleep -Seconds 300  # Verifica a cada 5 minutos
+          }
+
+      # Etapa 5: Criar ou salvar logs no repositório
+      - name: Save Logs or Configurations
+        run: |
           $logContent = "Última execução: $(Get-Date)"
           $logFile = "log.txt"
           Set-Content -Path $logFile -Value $logContent
+          Write-Host "Log salvo com sucesso em log.txt"
 
-      # Commit automático das alterações
+      # Etapa 6: Commit e push automático das alterações
       - name: Commit and Push Changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -36,13 +75,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Salvando alterações automáticas - $(Get-Date)" || echo "Nada a commitar"
+          git commit -m "Atualizações automáticas - $(Get-Date)" || echo "Nada a commitar"
           git push
 
-      # Simulação de execução infinita
+      # Etapa 7: Simular execução contínua
       - name: Simulate Infinite Execution
         run: |
           while ($true) {
-            Write-Host "Job ainda está ativo às $(Get-Date)"
-            Start-Sleep -Seconds 3600
+            Write-Host "Workflow em execução contínua às $(Get-Date)"
+            Start-Sleep -Seconds 3600  # Pausa por 1 hora
           }
